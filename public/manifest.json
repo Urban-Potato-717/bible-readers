@@ -1,6 +1,6 @@
 {
   "name": "성경 읽기방",
-  "short_name": "읽기방",
+  "short_name": "성경 읽기방",
   "description": "매일 성경 인증 + 벌금 자동 정산",
   "start_url": "/",
   "scope": "/",
