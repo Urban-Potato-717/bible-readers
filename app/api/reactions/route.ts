@@ -3,6 +3,8 @@ import { getSessionUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { REACTION_EMOJIS } from "@/lib/chat";
 
+export const preferredRegion = "icn1";
+
 export async function POST(req: Request) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });

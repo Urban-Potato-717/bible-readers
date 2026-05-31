@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+// Run server functions in Seoul (icn1) to colocate with the Supabase DB.
+export const preferredRegion = "icn1";
+
 export const metadata: Metadata = {
   title: "성경 읽기방",
   description: "매일 성경 인증 + 벌금 자동 정산",

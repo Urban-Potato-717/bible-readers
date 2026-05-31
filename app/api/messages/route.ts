@@ -3,6 +3,8 @@ import { getSessionUser } from "@/lib/auth";
 import { supabaseAdmin, VERIFICATION_BUCKET } from "@/lib/supabase";
 import { loadFeed } from "@/lib/messages";
 
+export const preferredRegion = "icn1";
+
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 const MAX_BODY_LEN = 4000;
 

@@ -3,6 +3,8 @@ import { supabaseAdmin, VERIFICATION_BUCKET } from "@/lib/supabase";
 import { assertCronAuth } from "@/lib/cron";
 import { PHOTO_RETENTION_DAYS, CHAT_RETENTION_DAYS } from "@/lib/chat";
 
+export const preferredRegion = "icn1";
+
 // Daily KST 2am.
 // 1) Delete verification/chat photos older than PHOTO_RETENTION_DAYS (Storage savings).
 // 2) Delete chat messages (text) older than CHAT_RETENTION_DAYS so the feed doesn't grow forever.

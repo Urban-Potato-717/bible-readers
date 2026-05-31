@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { yesterdayKst } from "@/lib/dates";
 import { assertCronAuth } from "@/lib/cron";
 
+export const preferredRegion = "icn1";
+
 // 매일 KST 새벽 1시 (UTC 16:00) 실행.
 // 어제 인증 안 한 사람마다 fines에 1건씩 추가.
 export async function GET(req: Request) {

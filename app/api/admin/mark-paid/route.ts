@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
+export const preferredRegion = "icn1";
+
 export async function POST(req: Request) {
   const me = await getSessionUser();
   if (!me?.is_admin) {

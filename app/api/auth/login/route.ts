@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { setSession } from "@/lib/auth";
 
+export const preferredRegion = "icn1";
+
 export async function POST(req: Request) {
   let body: { name?: string; pin?: string };
   try {
