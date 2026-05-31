@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { supabaseAdmin, VERIFICATION_BUCKET } from "@/lib/supabase";
 import { currentReadingDate } from "@/lib/dates";
+import { ALLOWED_IMAGE_TYPES } from "@/lib/chat";
 
 export const preferredRegion = "icn1";
 
@@ -25,8 +26,11 @@ export async function POST(req: Request) {
     if (photo.size > MAX_PHOTO_BYTES) {
       return NextResponse.json({ error: "사진은 8MB 이하" }, { status: 413 });
     }
-    if (!photo.type.startsWith("image/")) {
-      return NextResponse.json({ error: "이미지 파일만 가능" }, { status: 400 });
+    if (!ALLOWED_IMAGE_TYPES.includes(photo.type as never)) {
+      return NextResponse.json(
+        { error: "JPG/PNG/WEBP/GIF 이미지만 가능" },
+        { status: 400 }
+      );
     }
     const ext = photo.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
     const path = `${me.id}/${date}-${Date.now()}.${ext}`;

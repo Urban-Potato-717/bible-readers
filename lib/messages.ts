@@ -35,7 +35,10 @@ async function signPaths(paths: string[]): Promise<Map<string, string>> {
   for (const p of paths) {
     const cached = signedCache.get(p);
     if (cached && cached.expires > now) result.set(p, cached.url);
-    else missing.push(p);
+    else {
+      if (cached) signedCache.delete(p);
+      missing.push(p);
+    }
   }
   if (missing.length > 0) {
     const { data: signed } = await supabaseAdmin.storage
