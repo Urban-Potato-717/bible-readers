@@ -10,6 +10,8 @@ type Props = {
   verifiedToday: boolean;
 };
 
+type LocalMessage = FeedMessage & { pending?: boolean; failed?: boolean };
+
 function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString("ko-KR", {
     hour: "2-digit",
@@ -31,7 +33,7 @@ export function ChatRoom({
   initialMessages,
   verifiedToday: verifiedInit,
 }: Props) {
-  const [messages, setMessages] = useState<FeedMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<LocalMessage[]>(initialMessages);
   const [verifiedToday, setVerifiedToday] = useState(verifiedInit);
   const [hasOlder, setHasOlder] = useState(
     initialMessages.length >= MESSAGE_PAGE_SIZE
@@ -70,6 +72,71 @@ export function ChatRoom({
         bottomRef.current?.scrollIntoView({ block: "end" })
       );
   }, [merge]);
+
+  // Keeps body/file for each optimistic message so a failed send can be retried.
+  const pendingPayloads = useRef<Map<string, { body: string; file: File | null }>>(
+    new Map()
+  );
+
+  const postMessage = useCallback(
+    async (tempId: string, body: string, file: File | null) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId ? { ...m, pending: true, failed: false } : m
+        )
+      );
+      try {
+        const fd = new FormData();
+        fd.set("body", body);
+        if (file) fd.set("photo", file);
+        const res = await fetch("/api/messages", { method: "POST", body: fd });
+        if (!res.ok) throw new Error("send failed");
+        pendingPayloads.current.delete(tempId);
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        refresh();
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId ? { ...m, pending: false, failed: true } : m
+          )
+        );
+      }
+    },
+    [refresh]
+  );
+
+  const sendMessage = useCallback(
+    (text: string, file: File | null) => {
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const optimistic: LocalMessage = {
+        id: tempId,
+        user_id: meId,
+        user_name: "",
+        kind: "chat",
+        body: text.trim() ? text : null,
+        photo_url: file ? URL.createObjectURL(file) : null,
+        date: null,
+        created_at: new Date().toISOString(),
+        reactions: [],
+        pending: true,
+      };
+      pendingPayloads.current.set(tempId, { body: text, file });
+      setMessages((prev) => [...prev, optimistic]);
+      requestAnimationFrame(() =>
+        bottomRef.current?.scrollIntoView({ block: "end" })
+      );
+      postMessage(tempId, text, file);
+    },
+    [meId, postMessage]
+  );
+
+  const retryMessage = useCallback(
+    (tempId: string) => {
+      const payload = pendingPayloads.current.get(tempId);
+      if (payload) postMessage(tempId, payload.body, payload.file);
+    },
+    [postMessage]
+  );
 
   // Poll every 3s.
   useEffect(() => {
@@ -168,6 +235,7 @@ export function ChatRoom({
                   picking={reactingId === m.id}
                   onPick={() => setReactingId(reactingId === m.id ? null : m.id)}
                   onReact={(e) => toggleReaction(m.id, e)}
+                  onRetry={() => retryMessage(m.id)}
                 />
               </div>
             );
@@ -177,7 +245,7 @@ export function ChatRoom({
       </div>
 
       {/* composer */}
-      <Composer onSent={refresh} />
+      <Composer onSend={sendMessage} />
 
       {showVerify && (
         <VerifySheet
@@ -200,14 +268,17 @@ function Bubble({
   picking,
   onPick,
   onReact,
+  onRetry,
 }: {
-  m: FeedMessage;
+  m: LocalMessage;
   mine: boolean;
   picking: boolean;
   onPick: () => void;
   onReact: (emoji: string) => void;
+  onRetry: () => void;
 }) {
   const isVer = m.kind === "verification";
+  const interactive = !m.pending && !m.failed;
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-1`}>
       {!mine && (
@@ -215,14 +286,14 @@ function Bubble({
       )}
       <div className={`flex items-end gap-1 ${mine ? "flex-row-reverse" : ""}`}>
         <button
-          onClick={onPick}
+          onClick={interactive ? onPick : undefined}
           className={`max-w-[78vw] sm:max-w-xs rounded-2xl px-3 py-2 text-left ${
             isVer
               ? "bg-emerald-50 border border-emerald-300"
               : mine
                 ? "bg-slate-900 text-white"
                 : "bg-white border border-slate-200"
-          }`}
+          } ${m.pending ? "opacity-60" : ""}`}
         >
           {isVer && (
             <span className="inline-block text-[11px] font-medium text-emerald-700 mb-1">
@@ -243,9 +314,20 @@ function Bubble({
             />
           )}
         </button>
-        <span className="text-[10px] text-slate-400 shrink-0">
-          {timeLabel(m.created_at)}
-        </span>
+        {m.pending ? (
+          <span className="text-[10px] text-slate-400 shrink-0">전송중…</span>
+        ) : m.failed ? (
+          <button
+            onClick={onRetry}
+            className="text-[10px] text-red-500 shrink-0 underline"
+          >
+            전송 실패 · 다시 시도
+          </button>
+        ) : (
+          <span className="text-[10px] text-slate-400 shrink-0">
+            {timeLabel(m.created_at)}
+          </span>
+        )}
       </div>
 
       {/* reactions */}
@@ -280,27 +362,19 @@ function Bubble({
   );
 }
 
-function Composer({ onSent }: { onSent: () => void }) {
+function Composer({
+  onSend,
+}: {
+  onSend: (text: string, file: File | null) => void;
+}) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [sending, setSending] = useState(false);
 
-  async function send() {
-    if ((!text.trim() && !file) || sending) return;
-    setSending(true);
-    try {
-      const fd = new FormData();
-      fd.set("body", text);
-      if (file) fd.set("photo", file);
-      const res = await fetch("/api/messages", { method: "POST", body: fd });
-      if (res.ok) {
-        setText("");
-        setFile(null);
-        onSent();
-      }
-    } finally {
-      setSending(false);
-    }
+  function send() {
+    if (!text.trim() && !file) return;
+    onSend(text, file);
+    setText("");
+    setFile(null);
   }
 
   return (
@@ -339,7 +413,7 @@ function Composer({ onSent }: { onSent: () => void }) {
           />
           <button
             onClick={send}
-            disabled={sending || (!text.trim() && !file)}
+            disabled={!text.trim() && !file}
             className="shrink-0 rounded-full bg-slate-900 text-white px-4 h-9 text-sm font-medium disabled:opacity-40"
           >
             전송
