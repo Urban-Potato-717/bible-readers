@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm install @supabase/supabase-js bcryptjs date-fns)",
+      "PowerShell(npm install -D @types/bcryptjs)",
+      "Bash(ls -la)",
+      "Bash(git status *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"=== TYPECHECK EXIT: $? ===\")",
+      "Bash(node *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/login)",
+      "Bash(curl -s http://localhost:3000/login)",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code} location=%header{location}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o - -w \"\\\\n[status %{http_code}]\\\\n\" http://localhost:3000/api/messages)",
+      "Bash(curl -s -o /dev/null -w \"[status %{http_code}]\\\\n\" http://localhost:3000/login)",
+      "Bash(git --version)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(vercel --version)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git -c user.email=\"bumjun0302@gmail.com\" -c user.name=\"김준영\" commit -q -m \"성경 읽기방 PWA: 단톡방형 채팅·인증 피드, 벌금 자동정산\")"
+    ]
+  }
+}
