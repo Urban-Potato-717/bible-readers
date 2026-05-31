@@ -1,5 +1,5 @@
 // Bump CACHE on each meaningful change to evict the old shell.
-const CACHE = "ilkbang-v1";
+const CACHE = "ilkbang-v2";
 const ASSETS = ["/", "/manifest.json", "/icon.svg", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -52,4 +52,37 @@ self.addEventListener("fetch", (event) => {
       )
     );
   }
+});
+
+// Web Push: show a notification when a verification arrives.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const title = data.title || "성경 읽기방";
+  const options = {
+    body: data.body || "",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: "verify",
+    data: { url: data.url || "/" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Focus an existing window or open the app when the notification is tapped.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ("focus" in client) return client.focus();
+      }
+      return self.clients.openWindow(target);
+    })
+  );
 });

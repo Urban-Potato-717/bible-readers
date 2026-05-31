@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { supabaseAdmin, VERIFICATION_BUCKET } from "@/lib/supabase";
 import { currentReadingDate } from "@/lib/dates";
 import { ALLOWED_IMAGE_TYPES } from "@/lib/chat";
+import { sendToUsers } from "@/lib/push";
 
 export const preferredRegion = "icn1";
 
@@ -109,6 +110,23 @@ export async function POST(req: Request) {
       body: text || null,
       photo_path: photo_path ?? null,
     });
+  }
+
+  // Notify the other members (never the actor). Fire-and-forget: push failures
+  // must not fail the verification itself.
+  try {
+    const { data: others } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .neq("id", me.id);
+    const ids = (others ?? []).map((u) => u.id);
+    await sendToUsers(ids, {
+      title: `${me.name}님 인증 완료! 📖`,
+      body: text ? text.slice(0, 80) : "오늘 분량 읽었어요",
+      url: "/",
+    });
+  } catch (err) {
+    console.warn("[verify] push notify failed", (err as Error).message);
   }
 
   return NextResponse.json({ ok: true });
