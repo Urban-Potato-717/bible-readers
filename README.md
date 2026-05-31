@@ -77,7 +77,11 @@ update public.users set legacy_paid_total = 20000 where name = '김준영';
 ```
 
 ## 스택
-- Next.js 16 (App Router) + TypeScript + Tailwind v4
-- Supabase (Postgres + Storage)
-- Vercel (Hosting + Cron)
-- 인증: 자체 PIN 해시 (bcryptjs) + 서명 쿠키 (HMAC-SHA256)
+- **프레임워크**: Next.js 16.2 (App Router, Server Actions) + React 19.2
+- **언어**: TypeScript 5
+- **스타일**: Tailwind CSS v4 (`@tailwindcss/postcss`)
+- **DB / 스토리지**: Supabase (Postgres + Storage), `@supabase/supabase-js` 2.x
+- **호스팅 / 스케줄러**: Vercel (Hosting + Cron, `icn1`/Seoul 리전 고정)
+- **인증**: 자체 PIN 해시 (bcryptjs 3) + 서명 쿠키 (HMAC-SHA256)
+- **날짜 처리**: date-fns 4
+- **PWA**: Web App Manifest + 서비스 워커(`public/sw.js`, 오프라인 대응) + iOS `apple-icon` — 홈 화면 설치/standalone 실행
