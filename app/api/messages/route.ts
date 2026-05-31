@@ -67,3 +67,34 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(req: Request) {
+  const me = await getSessionUser();
+  if (!me) return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
+
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "메시지 ID 필요" }, { status: 400 });
+
+  const { data: msg } = await supabaseAdmin
+    .from("messages")
+    .select("id, user_id, kind, photo_path")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!msg || msg.user_id !== me.id) {
+    return NextResponse.json({ error: "삭제할 수 없는 메시지입니다" }, { status: 403 });
+  }
+  // Verification messages are tied to fine/calendar logic — edit via 다시 인증.
+  if (msg.kind !== "chat") {
+    return NextResponse.json({ error: "인증 메시지는 삭제할 수 없어요" }, { status: 400 });
+  }
+
+  if (msg.photo_path) {
+    await supabaseAdmin.storage.from(VERIFICATION_BUCKET).remove([msg.photo_path]);
+  }
+  // reactions cascade-delete via FK.
+  const { error } = await supabaseAdmin.from("messages").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
+}

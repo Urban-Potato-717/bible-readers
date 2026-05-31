@@ -40,6 +40,7 @@ export function ChatRoom({
   );
   const [showVerify, setShowVerify] = useState(false);
   const [reactingId, setReactingId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -219,6 +220,17 @@ export function ChatRoom({
     refresh();
   }
 
+  async function deleteMessage(messageId: string) {
+    setMenuId(null);
+    // Optimistically remove; refresh reconciles if the server rejects.
+    const removed = messagesRef.current.find((m) => m.id === messageId);
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    const res = await fetch(`/api/messages?id=${encodeURIComponent(messageId)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok && removed) refresh();
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* verify status banner */}
@@ -273,7 +285,18 @@ export function ChatRoom({
                   m={m}
                   mine={m.user_id === meId}
                   picking={reactingId === m.id}
-                  onPick={() => setReactingId(reactingId === m.id ? null : m.id)}
+                  menuOpen={menuId === m.id}
+                  canDelete={m.user_id === meId && m.kind === "chat"}
+                  onPick={() => {
+                    setMenuId(null);
+                    setReactingId(reactingId === m.id ? null : m.id);
+                  }}
+                  onLongPress={() => {
+                    setReactingId(null);
+                    setMenuId(m.id);
+                  }}
+                  onCloseMenu={() => setMenuId(null)}
+                  onDelete={() => deleteMessage(m.id)}
                   onReact={(e) => toggleReaction(m.id, e)}
                   onRetry={() => retryMessage(m.id)}
                 />
@@ -306,19 +329,58 @@ function Bubble({
   m,
   mine,
   picking,
+  menuOpen,
+  canDelete,
   onPick,
+  onLongPress,
+  onCloseMenu,
+  onDelete,
   onReact,
   onRetry,
 }: {
   m: LocalMessage;
   mine: boolean;
   picking: boolean;
+  menuOpen: boolean;
+  canDelete: boolean;
   onPick: () => void;
+  onLongPress: () => void;
+  onCloseMenu: () => void;
+  onDelete: () => void;
   onReact: (emoji: string) => void;
   onRetry: () => void;
 }) {
   const isVer = m.kind === "verification";
   const interactive = !m.pending && !m.failed;
+
+  // Long-press (~500ms) opens the delete menu; a normal tap opens the emoji
+  // picker. longFired suppresses the click that fires after a long press.
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longFired = useRef(false);
+
+  function startPress() {
+    if (!interactive || !canDelete) return;
+    longFired.current = false;
+    pressTimer.current = setTimeout(() => {
+      longFired.current = true;
+      onLongPress();
+    }, 500);
+  }
+  function cancelPress() {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  }
+  function handleClick() {
+    if (!interactive) return;
+    if (longFired.current) {
+      longFired.current = false;
+      return;
+    }
+    onPick();
+  }
+
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-1`}>
       {!mine && (
@@ -326,7 +388,13 @@ function Bubble({
       )}
       <div className={`flex items-end gap-1 ${mine ? "flex-row-reverse" : ""}`}>
         <button
-          onClick={interactive ? onPick : undefined}
+          onClick={handleClick}
+          onPointerDown={startPress}
+          onPointerUp={cancelPress}
+          onPointerLeave={cancelPress}
+          onPointerCancel={cancelPress}
+          onPointerMove={cancelPress}
+          onContextMenu={(e) => e.preventDefault()}
           className={`max-w-[78vw] sm:max-w-xs rounded-2xl px-3 py-2 text-left ${
             isVer
               ? "bg-emerald-50 border border-emerald-300"
@@ -401,6 +469,25 @@ function Bubble({
               {e}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* delete confirmation (long-press menu) */}
+      {menuOpen && (
+        <div className={`flex items-center gap-1.5 mt-1 ${mine ? "justify-end" : ""}`}>
+          <span className="text-xs text-slate-500">이 메시지를 삭제할까요?</span>
+          <button
+            onClick={onDelete}
+            className="text-xs font-medium rounded-full bg-red-500 text-white px-3 py-1"
+          >
+            삭제
+          </button>
+          <button
+            onClick={onCloseMenu}
+            className="text-xs rounded-full bg-white border border-slate-200 px-3 py-1"
+          >
+            취소
+          </button>
         </div>
       )}
     </div>
