@@ -61,6 +61,15 @@ export function ChatRoom({
     return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
   };
 
+  // Mirror of messages so polling callbacks can read the latest cursor
+  // without being re-created on every render.
+  const messagesRef = useRef<LocalMessage[]>(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Full reload of the latest page — also syncs reactions/edits on existing
+  // messages. Used on send, on mount, and on a slower cadence while polling.
   const refresh = useCallback(async () => {
     const stick = isNearBottom();
     const res = await fetch("/api/messages", { cache: "no-store" });
@@ -72,6 +81,26 @@ export function ChatRoom({
         bottomRef.current?.scrollIntoView({ block: "end" })
       );
   }, [merge]);
+
+  // Incremental poll: fetch only messages newer than the newest real one.
+  const pollNew = useCallback(async () => {
+    const reals = messagesRef.current.filter((m) => !m.pending && !m.failed);
+    const cursor = reals.length ? reals[reals.length - 1].created_at : null;
+    if (!cursor) return refresh();
+    const stick = isNearBottom();
+    const res = await fetch(`/api/messages?after=${encodeURIComponent(cursor)}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return;
+    const { messages: fresh } = (await res.json()) as { messages: LocalMessage[] };
+    if (fresh.length > 0) {
+      merge(fresh);
+      if (stick)
+        requestAnimationFrame(() =>
+          bottomRef.current?.scrollIntoView({ block: "end" })
+        );
+    }
+  }, [merge, refresh]);
 
   // Keeps body/file for each optimistic message so a failed send can be retried.
   const pendingPayloads = useRef<Map<string, { body: string; file: File | null }>>(
@@ -92,7 +121,12 @@ export function ChatRoom({
         const res = await fetch("/api/messages", { method: "POST", body: fd });
         if (!res.ok) throw new Error("send failed");
         pendingPayloads.current.delete(tempId);
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setMessages((prev) => {
+          const temp = prev.find((m) => m.id === tempId);
+          if (temp?.photo_url?.startsWith("blob:"))
+            URL.revokeObjectURL(temp.photo_url);
+          return prev.filter((m) => m.id !== tempId);
+        });
         refresh();
       } catch {
         setMessages((prev) =>
@@ -138,11 +172,17 @@ export function ChatRoom({
     [postMessage]
   );
 
-  // Poll every 3s.
+  // Poll every 3s for new messages; every 5th tick (15s) do a full refresh
+  // so reactions/edits on existing messages stay in sync.
   useEffect(() => {
-    const t = setInterval(refresh, 3000);
+    let ticks = 0;
+    const t = setInterval(() => {
+      ticks += 1;
+      if (ticks % 5 === 0) refresh();
+      else pollNew();
+    }, 3000);
     return () => clearInterval(t);
-  }, [refresh]);
+  }, [refresh, pollNew]);
 
   // Initial scroll to bottom.
   useEffect(() => {
@@ -330,8 +370,8 @@ function Bubble({
         )}
       </div>
 
-      {/* reactions */}
-      {(m.reactions.length > 0 || picking) && (
+      {/* existing reactions (fixed row) */}
+      {m.reactions.length > 0 && (
         <div className={`flex flex-wrap gap-1 mt-1 ${mine ? "justify-end" : ""}`}>
           {m.reactions.map((r) => (
             <button
@@ -346,16 +386,21 @@ function Bubble({
               {r.emoji} {r.count}
             </button>
           ))}
-          {picking &&
-            REACTION_EMOJIS.map((e) => (
-              <button
-                key={e}
-                onClick={() => onReact(e)}
-                className="text-base rounded-full px-1.5 py-0.5 bg-white border border-slate-200"
-              >
-                {e}
-              </button>
-            ))}
+        </div>
+      )}
+
+      {/* emoji picker (separate row below, so it doesn't shift existing reactions) */}
+      {picking && (
+        <div className={`flex flex-wrap gap-1 mt-1 ${mine ? "justify-end" : ""}`}>
+          {REACTION_EMOJIS.map((e) => (
+            <button
+              key={e}
+              onClick={() => onReact(e)}
+              className="text-base rounded-full px-1.5 py-0.5 bg-white border border-slate-200 shadow-sm"
+            >
+              {e}
+            </button>
+          ))}
         </div>
       )}
     </div>
