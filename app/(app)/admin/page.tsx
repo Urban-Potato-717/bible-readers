@@ -40,7 +40,12 @@ export default async function AdminPage() {
       ) : (
         <div className="space-y-4">
           {filtered.map((g) => (
-            <AdminUserRow key={g.id} name={g.name} fines={g.pending} />
+            <AdminUserRow
+              key={g.id}
+              userId={g.id}
+              name={g.name}
+              fines={g.pending}
+            />
           ))}
         </div>
       )}
