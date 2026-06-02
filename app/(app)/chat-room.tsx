@@ -511,7 +511,7 @@ function Composer({
 
   return (
     <div className="border-t border-slate-200 bg-white">
-      <div className="max-w-md mx-auto px-3 py-2">
+      <div className="max-w-md mx-auto px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         {file && (
           <div className="flex items-center justify-between text-xs text-slate-500 mb-1 px-1">
             <span>사진 첨부: {file.name}</span>
