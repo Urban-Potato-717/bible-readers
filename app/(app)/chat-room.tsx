@@ -44,11 +44,13 @@ export function ChatRoom({
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Whether the view is pinned to the bottom. Starts pinned so opening the app
-  // lands on the newest messages, and stays pinned as photos load — image loads
-  // grow the feed after the first scroll, so we must re-anchor to the bottom.
+  // (and returning from another tab) lands on the newest messages, and stays
+  // pinned as photos load. Only a deliberate upward scroll unpins it.
   const stick = useRef(true);
+  const lastTop = useRef(0);
 
   // Merge fetched messages into state by id (updates reactions + adds new).
   const merge = useCallback((incoming: FeedMessage[]) => {
@@ -71,17 +73,19 @@ export function ChatRoom({
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, []);
 
-  // Track pin state from real user scrolls; unpins once they scroll up to read.
+  // Unpin only on a deliberate upward scroll (scrollTop decreases). Feed growth
+  // from loading photos can fire scroll events via the browser's scroll
+  // anchoring, but those never decrease scrollTop, so they won't unpin us.
+  // Re-pin as soon as the user returns to the bottom.
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    const top = el.scrollTop;
+    const nearBottom = el.scrollHeight - top - el.clientHeight < 120;
+    if (top < lastTop.current - 4 && !nearBottom) stick.current = false;
+    else if (nearBottom) stick.current = true;
+    lastTop.current = top;
   }, []);
-
-  // A late-loading photo grows the feed; re-anchor while pinned to the bottom.
-  const onMediaLoad = useCallback(() => {
-    if (stick.current) scrollToBottom();
-  }, [scrollToBottom]);
 
   // Mirror of messages so polling callbacks can read the latest cursor
   // without being re-created on every render.
@@ -211,6 +215,19 @@ export function ChatRoom({
     scrollToBottom();
   }, [scrollToBottom]);
 
+  // Keep pinned to the newest message: whenever the feed grows (photos loading,
+  // new messages, font swaps) while pinned, snap back to the bottom. A
+  // ResizeObserver catches every size change reliably, unlike per-image onLoad.
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const ro = new ResizeObserver(() => {
+      if (stick.current) scrollToBottom();
+    });
+    ro.observe(content);
+    return () => ro.disconnect();
+  }, [scrollToBottom]);
+
   async function loadOlder() {
     const first = messages[0];
     if (!first) return;
@@ -278,7 +295,7 @@ export function ChatRoom({
 
       {/* feed */}
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
-        <div className="max-w-md mx-auto px-3 py-4 space-y-1">
+        <div ref={contentRef} className="max-w-md mx-auto px-3 py-4 space-y-1">
           {hasOlder && (
             <div className="text-center py-2">
               <button
@@ -322,7 +339,6 @@ export function ChatRoom({
                   onDelete={() => deleteMessage(m.id)}
                   onReact={(e) => toggleReaction(m.id, e)}
                   onRetry={() => retryMessage(m.id)}
-                  onMediaLoad={onMediaLoad}
                 />
               </div>
             );
@@ -361,7 +377,6 @@ function Bubble({
   onDelete,
   onReact,
   onRetry,
-  onMediaLoad,
 }: {
   m: LocalMessage;
   mine: boolean;
@@ -374,7 +389,6 @@ function Bubble({
   onDelete: () => void;
   onReact: (emoji: string) => void;
   onRetry: () => void;
-  onMediaLoad: () => void;
 }) {
   const isVer = m.kind === "verification";
   const interactive = !m.pending && !m.failed;
@@ -446,7 +460,6 @@ function Bubble({
             <img
               src={m.photo_url}
               alt="사진"
-              onLoad={onMediaLoad}
               className="mt-1 rounded-lg max-h-72 w-auto"
             />
           )}
