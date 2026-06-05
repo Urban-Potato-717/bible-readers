@@ -8,6 +8,7 @@ type Props = {
   today: string;
   initialMessages: FeedMessage[];
   verifiedToday: boolean;
+  streak: number;
 };
 
 type LocalMessage = FeedMessage & { pending?: boolean; failed?: boolean };
@@ -32,9 +33,11 @@ export function ChatRoom({
   today,
   initialMessages,
   verifiedToday: verifiedInit,
+  streak: streakInit,
 }: Props) {
   const [messages, setMessages] = useState<LocalMessage[]>(initialMessages);
   const [verifiedToday, setVerifiedToday] = useState(verifiedInit);
+  const [streak, setStreak] = useState(streakInit);
   const [hasOlder, setHasOlder] = useState(
     initialMessages.length >= MESSAGE_PAGE_SIZE
   );
@@ -274,16 +277,23 @@ export function ChatRoom({
       {/* verify status banner */}
       <div className="bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-800">
         <div className="max-w-md mx-auto px-4 py-2 flex items-center justify-between">
-          {verifiedToday ? (
-            <span className="text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-              오늘 인증 완료
-            </span>
-          ) : (
-            <span className="text-sm text-slate-500 dark:text-slate-400">
-              아직 오늘 인증 전이에요
-            </span>
-          )}
+          <span className="flex items-center gap-2">
+            {verifiedToday ? (
+              <span className="text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                오늘 인증 완료
+              </span>
+            ) : (
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                아직 오늘 인증 전이에요
+              </span>
+            )}
+            {streak > 0 && (
+              <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 dark:text-amber-300 dark:bg-amber-950 dark:border-amber-900">
+                🔥 {streak}일 연속
+              </span>
+            )}
+          </span>
           <button
             onClick={() => setShowVerify(true)}
             className="text-sm font-medium rounded-lg bg-slate-900 text-white px-3 py-1.5 dark:bg-slate-100 dark:text-slate-900"
@@ -356,6 +366,7 @@ export function ChatRoom({
           onClose={() => setShowVerify(false)}
           onDone={() => {
             setShowVerify(false);
+            if (!verifiedToday) setStreak((s) => s + 1);
             setVerifiedToday(true);
             refresh();
           }}

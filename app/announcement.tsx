@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 // Bump the version (and the items) whenever there's a new feature to announce;
 // users who dismissed an older version will see the new one once.
-const SEEN_KEY = "announcement-seen-v1";
+const SEEN_KEY = "announcement-seen-v2";
 
 const FEATURES = [
   { icon: "🌙", title: "다크 모드", desc: "어두운 테마를 지원해요." },
@@ -12,6 +12,16 @@ const FEATURES = [
     icon: "⚙️",
     title: "설정 탭",
     desc: "다크 모드와 알림을 직접 켜고 끌 수 있어요.",
+  },
+  {
+    icon: "🔥",
+    title: "연속 인증 스트릭",
+    desc: "며칠 연속 인증했는지 채팅방 상단에 표시돼요.",
+  },
+  {
+    icon: "🔔",
+    title: "저녁 인증 리마인더",
+    desc: "저녁 9시까지 인증 전이면 알림으로 알려드려요.",
   },
 ];
 

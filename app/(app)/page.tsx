@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { currentReadingDate } from "@/lib/dates";
+import { currentReadingDate, shiftDate } from "@/lib/dates";
+import { currentStreak } from "@/lib/streak";
 import { loadFeed } from "@/lib/messages";
 import { ChatRoom } from "./chat-room";
 
@@ -10,22 +11,24 @@ export default async function HomePage() {
   const me = (await getSessionUser())!;
   const today = currentReadingDate();
 
-  const [initial, { data: myVerification }] = await Promise.all([
+  const [initial, { data: myVerifications }] = await Promise.all([
     loadFeed({ meId: me.id }),
     supabaseAdmin
       .from("verifications")
-      .select("id")
+      .select("date")
       .eq("user_id", me.id)
-      .eq("date", today)
-      .maybeSingle(),
+      .gte("date", shiftDate(today, -400)),
   ]);
+
+  const dates = (myVerifications ?? []).map((v) => v.date as string);
 
   return (
     <ChatRoom
       meId={me.id}
       today={today}
       initialMessages={initial}
-      verifiedToday={!!myVerification}
+      verifiedToday={dates.includes(today)}
+      streak={currentStreak(dates, today)}
     />
   );
 }

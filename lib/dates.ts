@@ -26,6 +26,12 @@ export function yesterdayKst(now: Date = new Date()): string {
   return kst.toISOString().slice(0, 10);
 }
 
+/** YYYY-MM-DD에서 delta일 이동한 날짜 문자열 (KST 날짜 산술, 타임존 무관) */
+export function shiftDate(dateStr: string, delta: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + delta)).toISOString().slice(0, 10);
+}
+
 export function formatKoreanDate(dateStr: string): string {
   const [, m, d] = dateStr.split("-");
   return `${parseInt(m, 10)}월 ${parseInt(d, 10)}일`;
