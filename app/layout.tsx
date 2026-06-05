@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Pwa } from "./pwa";
 
@@ -24,18 +25,27 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-// Applies only an explicitly saved theme before first paint to avoid a flash.
-// We intentionally ignore the OS color scheme so the default is always light
-// and the toggle is the single source of truth.
-const themeScript = `(function(){try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`;
+// Reconciles the theme on the client for cached/offline shells where the
+// server-rendered class may be stale. The cookie is the source of truth; we
+// fall back to localStorage. The OS color scheme is intentionally ignored so
+// the default is always light and the toggle is the single source of truth.
+const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )theme=(dark|light)/);var t=m?m[1]:localStorage.getItem('theme');var c=document.documentElement.classList;if(t==='dark')c.add('dark');else if(t==='light')c.remove('dark');}catch(e){}})();`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Server-render the theme from the cookie so installed PWAs (whose
+  // localStorage can be isolated/evicted across cold launches) keep dark mode.
+  const dark = (await cookies()).get("theme")?.value === "dark";
+
   return (
-    <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
+    <html
+      lang="ko"
+      className={`h-full antialiased${dark ? " dark" : ""}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

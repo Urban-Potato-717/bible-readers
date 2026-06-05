@@ -72,7 +72,11 @@ export function SettingsPanel() {
   function toggleDark() {
     const next = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
+    const value = next ? "dark" : "light";
+    localStorage.setItem("theme", value);
+    // Cookie is the source of truth for the server-rendered theme, so the
+    // choice survives PWA cold launches even if localStorage is cleared.
+    document.cookie = `theme=${value}; path=/; max-age=31536000; samesite=lax`;
     setDark(next);
   }
 
