@@ -62,37 +62,39 @@ export default async function FinesPage() {
         </p>
       </div>
 
-      <div className="rounded-2xl bg-white border border-slate-200 p-4 mb-6">
-        <p className="text-xs text-slate-500 mb-1">벌금 납부처</p>
+      <div className="rounded-2xl bg-white border border-slate-200 p-4 mb-6 dark:bg-slate-900 dark:border-slate-800">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">벌금 납부처</p>
         <p className="font-mono text-sm">3333-29-4006351 카카오뱅크</p>
-        <p className="text-sm text-slate-700">예금주: 김준영</p>
+        <p className="text-sm text-slate-700 dark:text-slate-300">예금주: 김준영</p>
       </div>
 
-      <h2 className="text-sm font-medium text-slate-500 mb-2">개인별 현황</h2>
+      <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">개인별 현황</h2>
       <div className="space-y-2">
         {rows.map((r) => (
           <div
             key={r.id}
             className={`rounded-xl border p-3 flex items-center justify-between ${
-              r.isMe ? "bg-amber-50 border-amber-200" : "bg-white border-slate-200"
+              r.isMe
+                ? "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-900"
+                : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
             }`}
           >
             <div>
               <p className="font-medium">
                 {r.name}
                 {r.isMe && (
-                  <span className="ml-2 text-xs text-amber-700">나</span>
+                  <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">나</span>
                 )}
               </p>
               {r.pendingTotal > 0 && (
-                <p className="text-xs text-red-600 mt-0.5">
+                <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
                   미정산 {r.pendingTotal.toLocaleString()}원
                 </p>
               )}
             </div>
             <p className="text-lg font-bold">
               {r.paidTotal.toLocaleString()}
-              <span className="text-xs font-normal text-slate-500 ml-1">원</span>
+              <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">원</span>
             </p>
           </div>
         ))}

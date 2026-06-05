@@ -31,12 +31,12 @@ export default async function AdminPage() {
   return (
     <main className="max-w-md mx-auto px-4 py-6">
       <h1 className="text-xl font-bold mb-1">정산 관리</h1>
-      <p className="text-sm text-slate-500 mb-6">
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
         입금이 확인된 벌금을 &lsquo;납부 완료&rsquo;로 표시하세요. 납부 처리 시 총 벌금에 반영됩니다.
       </p>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-slate-500 py-12">미정산 벌금이 없습니다.</p>
+        <p className="text-center text-slate-500 dark:text-slate-400 py-12">미정산 벌금이 없습니다.</p>
       ) : (
         <div className="space-y-4">
           {filtered.map((g) => (

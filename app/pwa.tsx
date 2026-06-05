@@ -16,7 +16,20 @@ export function Pwa() {
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+      if (process.env.NODE_ENV === "production") {
+        navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+      } else {
+        // In development the service worker's cache-first strategy serves stale
+        // CSS/JS (Next reuses asset URLs across edits), so tear it down and
+        // clear its caches to avoid needing a hard refresh on every change.
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((regs) => regs.forEach((r) => r.unregister()))
+          .catch(() => {});
+        if ("caches" in window) {
+          caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+        }
+      }
     }
 
     const standalone =
@@ -26,19 +39,25 @@ export function Pwa() {
     if (standalone) return;
 
     if (localStorage.getItem(DISMISS_KEY)) return;
-    setDismissed(false);
+    const revealId = requestAnimationFrame(() => setDismissed(false));
 
     const isIos =
       /i[Pp]hone|iPad|iPod/.test(navigator.userAgent) &&
       !(window as unknown as { MSStream?: unknown }).MSStream;
-    if (isIos) setShowIosHint(true);
+    const iosHintId = isIos
+      ? requestAnimationFrame(() => setShowIosHint(true))
+      : null;
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
       setDeferred(e as InstallEvent);
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+    return () => {
+      cancelAnimationFrame(revealId);
+      if (iosHintId) cancelAnimationFrame(iosHintId);
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+    };
   }, []);
 
   function close() {

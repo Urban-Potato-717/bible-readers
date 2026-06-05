@@ -1,5 +1,5 @@
 // Bump CACHE on each meaningful change to evict the old shell.
-const CACHE = "ilkbang-v2";
+const CACHE = "ilkbang-v3";
 const ASSETS = ["/", "/manifest.json", "/icon.svg", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {

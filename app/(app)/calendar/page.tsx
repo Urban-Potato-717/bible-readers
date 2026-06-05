@@ -89,8 +89,8 @@ export default async function CalendarPage({
           href={`/calendar?view=personal&month=${curMonthStr}`}
           className={`flex-1 text-center text-sm py-2 rounded-lg border ${
             view === "personal"
-              ? "bg-slate-900 text-white border-slate-900"
-              : "bg-white border-slate-300 text-slate-700"
+              ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+              : "bg-white border-slate-300 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
           }`}
         >
           내 기록
@@ -99,8 +99,8 @@ export default async function CalendarPage({
           href={`/calendar?view=group&month=${curMonthStr}`}
           className={`flex-1 text-center text-sm py-2 rounded-lg border ${
             view === "group"
-              ? "bg-slate-900 text-white border-slate-900"
-              : "bg-white border-slate-300 text-slate-700"
+              ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+              : "bg-white border-slate-300 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
           }`}
         >
           전체
@@ -110,7 +110,7 @@ export default async function CalendarPage({
       <div className="flex items-center justify-between mb-3">
         <Link
           href={`/calendar?view=${view}&month=${prev}`}
-          className="text-slate-600 px-3 py-1 rounded hover:bg-slate-100"
+          className="text-slate-600 px-3 py-1 rounded hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           ←
         </Link>
@@ -119,13 +119,13 @@ export default async function CalendarPage({
         </p>
         <Link
           href={`/calendar?view=${view}&month=${next}`}
-          className="text-slate-600 px-3 py-1 rounded hover:bg-slate-100"
+          className="text-slate-600 px-3 py-1 rounded hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           →
         </Link>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-1">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 dark:text-slate-400 mb-1">
         {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
           <div key={d} className="py-1">
             {d}
@@ -150,26 +150,34 @@ export default async function CalendarPage({
             const verified = personalVer.has(date);
             const fined = personalFine.has(date);
             if (verified) {
-              cellClass += "bg-emerald-50 border-emerald-300 text-emerald-700";
+              cellClass +=
+                "bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300";
               content = "✓";
             } else if (fined) {
-              cellClass += "bg-red-50 border-red-300 text-red-700";
+              cellClass +=
+                "bg-red-50 border-red-300 text-red-700 dark:bg-red-950 dark:border-red-900 dark:text-red-300";
               content = "✕";
             } else if (isFuture) {
-              cellClass += "bg-white border-slate-100 text-slate-300";
+              cellClass +=
+                "bg-white border-slate-100 text-slate-300 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-600";
             } else {
-              cellClass += "bg-white border-slate-200 text-slate-400";
+              cellClass +=
+                "bg-white border-slate-200 text-slate-400 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500";
             }
           } else {
             const count = groupVerCount.get(date) ?? 0;
             if (isFuture) {
-              cellClass += "bg-white border-slate-100 text-slate-300";
+              cellClass +=
+                "bg-white border-slate-100 text-slate-300 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-600";
             } else if (count === userCount) {
-              cellClass += "bg-emerald-100 border-emerald-300 text-emerald-800";
+              cellClass +=
+                "bg-emerald-100 border-emerald-300 text-emerald-800 dark:bg-emerald-900 dark:border-emerald-700 dark:text-emerald-200";
             } else if (count > 0) {
-              cellClass += "bg-amber-50 border-amber-200 text-amber-700";
+              cellClass +=
+                "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950 dark:border-amber-900 dark:text-amber-300";
             } else {
-              cellClass += "bg-red-50 border-red-200 text-red-600";
+              cellClass +=
+                "bg-red-50 border-red-200 text-red-600 dark:bg-red-950 dark:border-red-900 dark:text-red-400";
             }
             if (!isFuture && userCount > 0) {
               content = (
@@ -180,7 +188,7 @@ export default async function CalendarPage({
             }
           }
 
-          if (isToday) cellClass += " ring-2 ring-slate-900";
+          if (isToday) cellClass += " ring-2 ring-slate-900 dark:ring-slate-100";
 
           return (
             <div key={date} className={cellClass}>
@@ -191,7 +199,7 @@ export default async function CalendarPage({
         })}
       </div>
 
-      <p className="text-xs text-slate-400 mt-4 text-center">
+      <p className="text-xs text-slate-400 dark:text-slate-500 mt-4 text-center">
         {view === "personal" ? "✓ 인증 완료 · ✕ 미인증(벌금)" : "전체 인증 수 / 총 인원"}
       </p>
     </main>

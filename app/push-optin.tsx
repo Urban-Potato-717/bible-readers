@@ -1,59 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { pushSupported, subscribePush } from "@/lib/push-client";
 
 const SEEN_KEY = "push-optin-seen";
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-  const normalized = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(normalized);
-  const out = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
-
-async function subscribe(): Promise<boolean> {
-  if (!VAPID_PUBLIC_KEY) return false;
-  const reg = await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
-  }
-  const res = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(sub.toJSON()),
-  });
-  return res.ok;
-}
 
 export function PushOptin() {
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
-    const supported =
-      typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window &&
-      !!VAPID_PUBLIC_KEY;
-    if (!supported) return;
+    if (!pushSupported()) return;
 
     // Already granted: keep the server's subscription in sync silently.
     if (Notification.permission === "granted") {
-      subscribe().catch(() => {});
+      subscribePush().catch(() => {});
       return;
     }
     // Denied, or we've already shown the prompt once: stay quiet.
     if (Notification.permission === "denied") return;
     if (localStorage.getItem(SEEN_KEY)) return;
 
-    setShowBanner(true);
+    const id = requestAnimationFrame(() => setShowBanner(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   function dismiss() {
@@ -66,7 +34,7 @@ export function PushOptin() {
     setShowBanner(false);
     try {
       const perm = await Notification.requestPermission();
-      if (perm === "granted") await subscribe();
+      if (perm === "granted") await subscribePush();
     } catch {
       // ignore — user can retry later via the prompt
     }

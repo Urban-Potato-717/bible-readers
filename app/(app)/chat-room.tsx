@@ -45,6 +45,11 @@ export function ChatRoom({
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Whether the view is pinned to the bottom. Starts pinned so opening the app
+  // lands on the newest messages, and stays pinned as photos load — image loads
+  // grow the feed after the first scroll, so we must re-anchor to the bottom.
+  const stick = useRef(true);
+
   // Merge fetched messages into state by id (updates reactions + adds new).
   const merge = useCallback((incoming: FeedMessage[]) => {
     setMessages((prev) => {
@@ -61,6 +66,22 @@ export function ChatRoom({
     if (!el) return true;
     return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
   };
+
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, []);
+
+  // Track pin state from real user scrolls; unpins once they scroll up to read.
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }, []);
+
+  // A late-loading photo grows the feed; re-anchor while pinned to the bottom.
+  const onMediaLoad = useCallback(() => {
+    if (stick.current) scrollToBottom();
+  }, [scrollToBottom]);
 
   // Mirror of messages so polling callbacks can read the latest cursor
   // without being re-created on every render.
@@ -187,8 +208,8 @@ export function ChatRoom({
 
   // Initial scroll to bottom.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, []);
+    scrollToBottom();
+  }, [scrollToBottom]);
 
   async function loadOlder() {
     const first = messages[0];
@@ -234,19 +255,21 @@ export function ChatRoom({
   return (
     <div className="flex flex-col h-full">
       {/* verify status banner */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-800">
         <div className="max-w-md mx-auto px-4 py-2 flex items-center justify-between">
           {verifiedToday ? (
-            <span className="text-sm text-emerald-700 flex items-center gap-1.5">
+            <span className="text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
               오늘 인증 완료
             </span>
           ) : (
-            <span className="text-sm text-slate-500">아직 오늘 인증 전이에요</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              아직 오늘 인증 전이에요
+            </span>
           )}
           <button
             onClick={() => setShowVerify(true)}
-            className="text-sm font-medium rounded-lg bg-slate-900 text-white px-3 py-1.5"
+            className="text-sm font-medium rounded-lg bg-slate-900 text-white px-3 py-1.5 dark:bg-slate-100 dark:text-slate-900"
           >
             {verifiedToday ? "다시 인증" : "인증 제출"}
           </button>
@@ -254,13 +277,13 @@ export function ChatRoom({
       </div>
 
       {/* feed */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto px-3 py-4 space-y-1">
           {hasOlder && (
             <div className="text-center py-2">
               <button
                 onClick={loadOlder}
-                className="text-xs text-slate-500 bg-white border border-slate-200 rounded-full px-3 py-1"
+                className="text-xs text-slate-500 bg-white border border-slate-200 rounded-full px-3 py-1 dark:text-slate-400 dark:bg-slate-800 dark:border-slate-700"
               >
                 이전 메시지 더보기
               </button>
@@ -276,7 +299,7 @@ export function ChatRoom({
               <div key={m.id}>
                 {showDay && (
                   <div className="text-center my-3">
-                    <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2.5 py-1">
+                    <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2.5 py-1 dark:text-slate-500 dark:bg-slate-800">
                       {dayLabel(m.created_at)}
                     </span>
                   </div>
@@ -299,6 +322,7 @@ export function ChatRoom({
                   onDelete={() => deleteMessage(m.id)}
                   onReact={(e) => toggleReaction(m.id, e)}
                   onRetry={() => retryMessage(m.id)}
+                  onMediaLoad={onMediaLoad}
                 />
               </div>
             );
@@ -337,6 +361,7 @@ function Bubble({
   onDelete,
   onReact,
   onRetry,
+  onMediaLoad,
 }: {
   m: LocalMessage;
   mine: boolean;
@@ -349,6 +374,7 @@ function Bubble({
   onDelete: () => void;
   onReact: (emoji: string) => void;
   onRetry: () => void;
+  onMediaLoad: () => void;
 }) {
   const isVer = m.kind === "verification";
   const interactive = !m.pending && !m.failed;
@@ -384,7 +410,9 @@ function Bubble({
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-1`}>
       {!mine && (
-        <span className="text-xs text-slate-500 ml-1 mb-0.5">{m.user_name}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400 ml-1 mb-0.5">
+          {m.user_name}
+        </span>
       )}
       <div className={`flex items-end gap-1 ${mine ? "flex-row-reverse" : ""}`}>
         <button
@@ -397,14 +425,14 @@ function Bubble({
           onContextMenu={(e) => e.preventDefault()}
           className={`max-w-[78vw] sm:max-w-xs rounded-2xl px-3 py-2 text-left ${
             isVer
-              ? "bg-emerald-50 border border-emerald-300"
+              ? "bg-emerald-50 border border-emerald-300 dark:bg-emerald-950 dark:border-emerald-800 dark:text-slate-100"
               : mine
-                ? "bg-slate-900 text-white"
-                : "bg-white border border-slate-200"
+                ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                : "bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
           } ${m.pending ? "opacity-60" : ""}`}
         >
           {isVer && (
-            <span className="inline-block text-[11px] font-medium text-emerald-700 mb-1">
+            <span className="inline-block text-[11px] font-medium text-emerald-700 dark:text-emerald-400 mb-1">
               ✓ 인증
             </span>
           )}
@@ -418,21 +446,24 @@ function Bubble({
             <img
               src={m.photo_url}
               alt="사진"
+              onLoad={onMediaLoad}
               className="mt-1 rounded-lg max-h-72 w-auto"
             />
           )}
         </button>
         {m.pending ? (
-          <span className="text-[10px] text-slate-400 shrink-0">전송중…</span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">
+            전송중…
+          </span>
         ) : m.failed ? (
           <button
             onClick={onRetry}
-            className="text-[10px] text-red-500 shrink-0 underline"
+            className="text-[10px] text-red-500 dark:text-red-400 shrink-0 underline"
           >
             전송 실패 · 다시 시도
           </button>
         ) : (
-          <span className="text-[10px] text-slate-400 shrink-0">
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">
             {timeLabel(m.created_at)}
           </span>
         )}
@@ -447,8 +478,8 @@ function Bubble({
               onClick={() => onReact(r.emoji)}
               className={`text-xs rounded-full px-2 py-0.5 border ${
                 r.mine
-                  ? "bg-amber-50 border-amber-300"
-                  : "bg-white border-slate-200"
+                  ? "bg-amber-50 border-amber-300 dark:bg-amber-950 dark:border-amber-800"
+                  : "bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700"
               }`}
             >
               {r.emoji} {r.count}
@@ -464,7 +495,7 @@ function Bubble({
             <button
               key={e}
               onClick={() => onReact(e)}
-              className="text-base rounded-full px-1.5 py-0.5 bg-white border border-slate-200 shadow-sm"
+              className="text-base rounded-full px-1.5 py-0.5 bg-white border border-slate-200 shadow-sm dark:bg-slate-800 dark:border-slate-700"
             >
               {e}
             </button>
@@ -475,7 +506,9 @@ function Bubble({
       {/* delete confirmation (long-press menu) */}
       {menuOpen && (
         <div className={`flex items-center gap-1.5 mt-1 ${mine ? "justify-end" : ""}`}>
-          <span className="text-xs text-slate-500">이 메시지를 삭제할까요?</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            이 메시지를 삭제할까요?
+          </span>
           <button
             onClick={onDelete}
             className="text-xs font-medium rounded-full bg-red-500 text-white px-3 py-1"
@@ -484,7 +517,7 @@ function Bubble({
           </button>
           <button
             onClick={onCloseMenu}
-            className="text-xs rounded-full bg-white border border-slate-200 px-3 py-1"
+            className="text-xs rounded-full bg-white border border-slate-200 px-3 py-1 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
           >
             취소
           </button>
@@ -510,18 +543,18 @@ function Composer({
   }
 
   return (
-    <div className="border-t border-slate-200 bg-white">
+    <div className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <div className="max-w-md mx-auto px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         {file && (
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-1 px-1">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1 px-1">
             <span>사진 첨부: {file.name}</span>
-            <button onClick={() => setFile(null)} className="text-slate-400">
+            <button onClick={() => setFile(null)} className="text-slate-400 dark:text-slate-500">
               취소
             </button>
           </div>
         )}
         <div className="flex items-end gap-2">
-          <label className="shrink-0 cursor-pointer rounded-full bg-slate-100 w-9 h-9 flex items-center justify-center text-slate-600">
+          <label className="shrink-0 cursor-pointer rounded-full bg-slate-100 w-9 h-9 flex items-center justify-center text-slate-600 dark:bg-slate-800 dark:text-slate-300">
             ＋
             <input
               type="file"
@@ -541,12 +574,12 @@ function Composer({
             }}
             rows={1}
             placeholder="메시지 입력"
-            className="flex-1 resize-none rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm max-h-28"
+            className="flex-1 resize-none rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm max-h-28 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
           <button
             onClick={send}
             disabled={!text.trim() && !file}
-            className="shrink-0 rounded-full bg-slate-900 text-white px-4 h-9 text-sm font-medium disabled:opacity-40"
+            className="shrink-0 rounded-full bg-slate-900 text-white px-4 h-9 text-sm font-medium disabled:opacity-40 dark:bg-slate-100 dark:text-slate-900"
           >
             전송
           </button>
@@ -598,14 +631,14 @@ function VerifySheet({
 
   return (
     <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center bg-black/40">
-      <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 space-y-4">
+      <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 space-y-4 dark:bg-slate-900 dark:text-slate-100">
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-lg">오늘 인증 제출</h2>
-          <button onClick={onClose} className="text-slate-400 text-sm">
+          <button onClick={onClose} className="text-slate-400 dark:text-slate-500 text-sm">
             닫기
           </button>
         </div>
-        <p className="text-xs text-slate-500 -mt-2">
+        <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2">
           나눔 글이나 사진을 올리면 인증으로 채팅방에 올라갑니다.
         </p>
         <textarea
@@ -613,7 +646,7 @@ function VerifySheet({
           onChange={(e) => setText(e.target.value)}
           rows={4}
           placeholder="예: 창세기 1-3장 / 오늘의 나눔..."
-          className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
         />
         <label className="block">
           <span className="text-sm font-medium">사진 (선택)</span>
@@ -621,11 +654,11 @@ function VerifySheet({
             type="file"
             accept="image/*"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="mt-1 w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700"
+            className="mt-1 w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700 dark:text-slate-300 dark:file:bg-slate-800 dark:file:text-slate-200"
           />
         </label>
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 dark:text-red-300 dark:bg-red-950 dark:border-red-900">
             {error}
           </p>
         )}

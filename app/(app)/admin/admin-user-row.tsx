@@ -71,55 +71,55 @@ export function AdminUserRow({
   }
 
   return (
-    <div className="rounded-2xl bg-white border border-slate-200 p-4">
+    <div className="rounded-2xl bg-white border border-slate-200 p-4 dark:bg-slate-900 dark:border-slate-800">
       <div className="flex items-center justify-between mb-3">
         <p className="font-medium">{name}</p>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           선택 {total.toLocaleString()}원 / 총{" "}
           {fines.reduce((s, f) => s + f.amount, 0).toLocaleString()}원
         </p>
       </div>
       <div className="space-y-1 mb-3">
         {fines.map((f) => (
-          <div key={f.id} className="rounded hover:bg-slate-50">
+          <div key={f.id} className="rounded hover:bg-slate-50 dark:hover:bg-slate-800">
             <div className="flex items-center gap-3 text-sm py-1.5 px-2">
               <label className="flex items-center gap-3 flex-1 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={selected.has(f.id)}
                   onChange={() => toggle(f.id)}
-                  className="accent-slate-900"
+                  className="accent-slate-900 dark:accent-slate-100"
                 />
                 <span className="flex-1">{f.date}</span>
-                <span className="text-slate-600">
+                <span className="text-slate-600 dark:text-slate-300">
                   {f.amount.toLocaleString()}원
                 </span>
                 {f.note && (
-                  <span className="text-xs text-slate-400">({f.note})</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">({f.note})</span>
                 )}
               </label>
               <button
                 onClick={() => setConfirmDate(f.date)}
                 disabled={verifyingDate === f.date}
-                className="shrink-0 rounded-md border border-slate-300 text-slate-700 px-2 py-1 text-xs font-medium hover:bg-slate-100 disabled:opacity-50"
+                className="shrink-0 rounded-md border border-slate-300 text-slate-700 px-2 py-1 text-xs font-medium hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 {verifyingDate === f.date ? "처리 중..." : "인증 처리"}
               </button>
             </div>
             {confirmDate === f.date && (
               <div className="flex items-center gap-2 px-2 pb-2 text-xs">
-                <span className="flex-1 text-slate-600">
+                <span className="flex-1 text-slate-600 dark:text-slate-300">
                   {krDate(f.date)} {name}님의 내역을 인증 처리하시겠습니까?
                 </span>
                 <button
                   onClick={() => markVerified(f.date)}
-                  className="shrink-0 rounded-md bg-slate-900 text-white px-3 py-1 font-medium"
+                  className="shrink-0 rounded-md bg-slate-900 text-white px-3 py-1 font-medium dark:bg-slate-100 dark:text-slate-900"
                 >
                   네
                 </button>
                 <button
                   onClick={() => setConfirmDate(null)}
-                  className="shrink-0 rounded-md border border-slate-300 text-slate-700 px-3 py-1"
+                  className="shrink-0 rounded-md border border-slate-300 text-slate-700 px-3 py-1 dark:border-slate-700 dark:text-slate-300"
                 >
                   아니요
                 </button>

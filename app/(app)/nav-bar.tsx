@@ -12,6 +12,7 @@ export function NavBar({ user }: { user: SessionUser }) {
     { href: "/", label: "채팅방" },
     { href: "/calendar", label: "캘린더" },
     { href: "/fines", label: "벌금" },
+    { href: "/settings", label: "설정" },
     ...(user.is_admin ? [{ href: "/admin", label: "관리" }] : []),
   ];
 
@@ -22,16 +23,18 @@ export function NavBar({ user }: { user: SessionUser }) {
   }
 
   return (
-    <header className="bg-white border-b border-slate-200">
+    <header className="bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-800">
       <div className="max-w-md mx-auto px-4 pt-3 pb-0 flex items-center justify-between">
-        <div className="text-sm text-slate-500">
-          <span className="font-medium text-slate-900">{user.name}</span>
+        <div className="text-sm text-slate-500 dark:text-slate-400">
+          <span className="font-medium text-slate-900 dark:text-slate-100">
+            {user.name}
+          </span>
           <span className="mx-1">·</span>
           성경 읽기방
         </div>
         <button
           onClick={logout}
-          className="text-xs text-slate-500 hover:text-slate-800"
+          className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
         >
           로그아웃
         </button>
@@ -46,8 +49,8 @@ export function NavBar({ user }: { user: SessionUser }) {
               href={t.href}
               className={`px-3 py-2 text-sm border-b-2 transition-colors ${
                 active
-                  ? "border-slate-900 text-slate-900 font-medium"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
+                  ? "border-slate-900 text-slate-900 font-medium dark:border-slate-100 dark:text-slate-100"
+                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
               }`}
             >
               {t.label}

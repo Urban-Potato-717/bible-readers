@@ -53,7 +53,7 @@ export function VerifyForm({ date, reupload }: Props) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="예: 창세기 1-3장"
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
         />
       </div>
       <div>
@@ -62,17 +62,17 @@ export function VerifyForm({ date, reupload }: Props) {
           type="file"
           accept="image/*"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700 hover:file:bg-slate-200"
+          className="w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700 hover:file:bg-slate-200 dark:text-slate-300 dark:file:bg-slate-800 dark:file:text-slate-200 dark:hover:file:bg-slate-700"
         />
         {file && (
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             선택됨: {file.name} ({Math.round(file.size / 1024)}KB)
           </p>
         )}
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 dark:text-red-300 dark:bg-red-950 dark:border-red-900">
           {error}
         </p>
       )}
@@ -80,7 +80,7 @@ export function VerifyForm({ date, reupload }: Props) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-slate-900 text-white py-3 font-medium disabled:opacity-50"
+        className="w-full rounded-lg bg-slate-900 text-white py-3 font-medium disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
       >
         {loading ? "올리는 중..." : reupload ? "다시 인증" : "인증하기"}
       </button>

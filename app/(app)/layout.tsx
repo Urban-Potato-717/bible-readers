@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { NavBar } from "./nav-bar";
 import { PushOptin } from "../push-optin";
+import { Announcement } from "../announcement";
 
 export default async function AppLayout({
   children,
@@ -16,6 +17,7 @@ export default async function AppLayout({
       <NavBar user={me} />
       <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
       <PushOptin />
+      <Announcement />
     </div>
   );
 }
