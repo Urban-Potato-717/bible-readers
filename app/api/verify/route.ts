@@ -14,7 +14,12 @@ export async function POST(req: Request) {
   if (!me) return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
 
   const form = await req.formData();
-  const date = (form.get("date") as string) || currentReadingDate();
+  const rawDate = form.get("date");
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const date =
+    typeof rawDate === "string" && DATE_RE.test(rawDate)
+      ? rawDate
+      : currentReadingDate();
   const text = ((form.get("text") as string) || "").trim();
   const photo = form.get("photo") as File | null;
 

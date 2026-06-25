@@ -55,16 +55,20 @@ export async function GET(req: Request) {
 
     const verIds = (staleVer ?? []).map((s) => s.id);
     const msgIds = (staleMsg ?? []).map((s) => s.id);
-    if (verIds.length > 0)
-      await supabaseAdmin
+    if (verIds.length > 0) {
+      const { error: verErr } = await supabaseAdmin
         .from("verifications")
         .update({ photo_path: null })
         .in("id", verIds);
-    if (msgIds.length > 0)
-      await supabaseAdmin
+      if (verErr) return NextResponse.json({ error: verErr.message }, { status: 500 });
+    }
+    if (msgIds.length > 0) {
+      const { error: msgErr } = await supabaseAdmin
         .from("messages")
         .update({ photo_path: null })
         .in("id", msgIds);
+      if (msgErr) return NextResponse.json({ error: msgErr.message }, { status: 500 });
+    }
   }
 
   // --- 2) prune old chat messages ---

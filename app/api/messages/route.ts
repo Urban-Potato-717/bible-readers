@@ -90,7 +90,10 @@ export async function DELETE(req: Request) {
   }
 
   if (msg.photo_path) {
-    await supabaseAdmin.storage.from(VERIFICATION_BUCKET).remove([msg.photo_path]);
+    const { error: rmErr } = await supabaseAdmin.storage
+      .from(VERIFICATION_BUCKET)
+      .remove([msg.photo_path]);
+    if (rmErr) return NextResponse.json({ error: rmErr.message }, { status: 500 });
   }
   // reactions cascade-delete via FK.
   const { error } = await supabaseAdmin.from("messages").delete().eq("id", id);
