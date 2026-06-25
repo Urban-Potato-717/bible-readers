@@ -4,12 +4,12 @@
 -- No carried-over pending fines — everyone starts fresh from here.
 
 insert into public.users (name, is_admin, legacy_paid_total) values
-  ('김준영', true,  19000),
-  ('고성민', false, 13000),
-  ('윤지훈', false, 1000),
-  ('한유선', false, 4000),
-  ('김현지', false, 12000),
-  ('손은혜', false, 10000),
-  ('주혜지', false, 3000),
-  ('박서윤', false, 2000)
+  ('멤버1', true,  0),
+  ('멤버2', false, 0),
+  ('멤버3', false, 0),
+  ('멤버4', false, 0),
+  ('멤버5', false, 0),
+  ('멤버6', false, 0),
+  ('멤버7', false, 0),
+  ('멤버8', false, 0)
 on conflict (name) do nothing;
